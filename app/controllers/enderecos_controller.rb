@@ -41,7 +41,7 @@ class EnderecosController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_endereco
-      @endereco = Endereco.find(params[:id])
+      @endereco = Endereco.find_by(cep: params[:cep])
     end
 
     # Only allow a list of trusted parameters through.
