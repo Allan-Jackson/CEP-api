@@ -1,14 +1,14 @@
 require_relative 'cep_service'
+require 'json'
 
 class EnderecosController < ApplicationController
   before_action :set_endereco, only: %i[ show update destroy ]
 
-  # # GET /enderecos
-  # def index
-  #   @enderecos = Endereco.all
-
-  #   render json: @enderecos
-  # end
+  # GET /enderecos
+  def index
+    @enderecos = Endereco.all
+    render json: @enderecos
+  end
 
   # GET /enderecos/1
   def show
@@ -49,13 +49,18 @@ class EnderecosController < ApplicationController
         @endereco = endereco
       else
         @endereco = MyCEPService.new.buscaEndereco(params[:cep])
+        salvaEndereco(@endereco)
       end
+      return @endereco
     end
-
-    
 
     # Only allow a list of trusted parameters through.
     def endereco_params
       params.require(:endereco).permit(:uf, :cidade, :bairro, :logradouro)
+    end
+
+    def salvaEndereco(endereco)
+      endereco = JSON.parse(endereco)
+      Endereco.create(endereco)
     end
 end
