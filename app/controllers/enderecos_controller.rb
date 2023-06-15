@@ -1,3 +1,5 @@
+require_relative 'cep_service'
+
 class EnderecosController < ApplicationController
   before_action :set_endereco, only: %i[ show update destroy ]
 
@@ -38,11 +40,19 @@ class EnderecosController < ApplicationController
   #   @endereco.destroy
   # end
 
+  #from this point forward, the methods are all private
   private
     # Use callbacks to share common setup or constraints between actions.
-    def set_endereco
-      @endereco = Endereco.find_by(cep: params[:cep])
+    def set_endereco      
+      #executes when the expression evaluates to false
+      unless (endereco = Endereco.find_by(cep: params[:cep])).nil?
+        @endereco = endereco
+      else
+        @endereco = MyCEPService.new.buscaEndereco(params[:cep])
+      end
     end
+
+    
 
     # Only allow a list of trusted parameters through.
     def endereco_params
