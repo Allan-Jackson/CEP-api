@@ -12,6 +12,7 @@ class EnderecosController < ApplicationController
 
   # GET /enderecos/1
   def show
+    associa_usuario_endereco(params[:userId], @endereco)
     render json: @endereco
   end
 
@@ -48,10 +49,8 @@ class EnderecosController < ApplicationController
       unless (endereco = Endereco.find_by(cep: params[:cep])).nil?
         @endereco = endereco
       else
-        @endereco = MyCEPService.new.buscaEndereco(params[:cep])
-        salvaEndereco(@endereco)
+        @endereco = salva_endereco(MyCEPService.new.buscaEndereco(params[:cep]))
       end
-      return @endereco
     end
 
     # Only allow a list of trusted parameters through.
@@ -59,8 +58,13 @@ class EnderecosController < ApplicationController
       params.require(:endereco).permit(:uf, :cidade, :bairro, :logradouro)
     end
 
-    def salvaEndereco(endereco)
+    def salva_endereco(endereco)
       endereco = JSON.parse(endereco)
       Endereco.create(endereco)
+    end
+
+    def associa_usuario_endereco(id_usuario, endereco)
+      endereco.usuarios << Usuario.find(id_usuario)
+      endereco.save
     end
 end
