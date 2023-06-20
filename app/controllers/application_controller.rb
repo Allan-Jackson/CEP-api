@@ -6,12 +6,17 @@ class ApplicationController < ActionController::API
         # obter o token do header
         # verificar se o token foi devidamente decodificado com o secret
         if request.headers['Authorization'].present?
-            begin
-                # o token vem na string 'Bearer {token}'
-                decoded_token = decode_jwt request.headers['Authorization'].split(' ').last
+            # o token vem na string 'Bearer {token}'
+            decoded_token = decode_jwt request.headers['Authorization'].split(' ').last
+            # valida se o token foi decodificado certinho (tamanho maior que 1) ou não (igual a 1)
+            if decoded_token.size > 1
                 @user_id = decoded_token.first['user_id']
-            rescue
-                render json: {erro: 'Erro de Autenticação, token inválido.'}, status: :unauthorized
+            else
+                if decoded_token.first[:expired]
+                    render json: {erro: 'Erro de Autenticação, token expirado.'}, status: :unauthorized         
+                else
+                    render json: {erro: 'Erro de Autenticação, token inválido.'}, status: :unauthorized
+                end
             end
         else
             render json: {erro: 'Erro de Autenticação, token ausente no header Authorization.'}, status: :unauthorized
@@ -24,6 +29,12 @@ class ApplicationController < ActionController::API
     end
 
     def decode_jwt(token)
-        JWT.decode token, Rails.application.credentials.dig(:auth, :jwt_secret), true, { algorithm: 'HS256' }
+        begin
+            JWT.decode token, Rails.application.credentials.dig(:auth, :jwt_secret), true, { algorithm: 'HS256' }
+        rescue JWT::ExpiredSignature
+            [{expired: true}]
+        rescue
+            [{invalid: true}]
+        end
     end
 end

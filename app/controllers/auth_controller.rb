@@ -6,7 +6,7 @@ class AuthController < ApplicationController
         user = Usuario.find_by(email: params[:email])&.authenticate_senha(params[:senha])
 
         if user
-            render json: {token: encode_jwt({user_id: user.id})}, status: :ok
+            render json: {token: encode_jwt({user_id: user.id, exp: (Time.now + 3600).to_i})}, status: :ok
         else
             render json: {erro: 'E-mail ou senha incorretos.'}, status: :bad_request
         end

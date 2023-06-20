@@ -1,4 +1,4 @@
-require_relative 'cep_service'
+require_relative 'services/cep_service'
 require 'json'
 
 class EnderecosController < ApplicationController
