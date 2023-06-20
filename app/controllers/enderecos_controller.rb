@@ -30,7 +30,9 @@ class EnderecosController < ApplicationController
     end
 
     def associa_usuario_endereco(id_usuario, endereco)
-      endereco.usuarios << Usuario.find(id_usuario)
-      endereco.save
+      unless endereco.usuarios.include? Usuario.find(id_usuario)
+        endereco.usuarios << Usuario.find(id_usuario)
+        endereco.save
+      end
     end
 end

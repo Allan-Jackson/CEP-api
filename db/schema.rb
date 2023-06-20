@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2023_06_16_195216) do
+ActiveRecord::Schema[7.0].define(version: 2023_06_20_001105) do
   create_table "enderecos", force: :cascade do |t|
     t.string "uf"
     t.string "cidade"
@@ -32,6 +32,7 @@ ActiveRecord::Schema[7.0].define(version: 2023_06_16_195216) do
     t.string "senha_digest"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_usuarios_on_email", unique: true
   end
 
 end
