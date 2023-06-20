@@ -16,5 +16,6 @@ users = [
     {nome: 'Itamar Siqueira', email: 'imatarnomar@email.com', senha: '456'}
 ]
 
+#usar find_or_create_by
 Usuario.create(users)
 Endereco.create(ends)
