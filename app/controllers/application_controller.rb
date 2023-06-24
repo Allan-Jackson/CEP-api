@@ -23,6 +23,19 @@ class ApplicationController < ActionController::API
         end
     end
     
+  protected
+    def validate_schema (schema)
+        begin
+            JSON::Validator.validate!(schema, request.raw_post())
+        rescue JSON::Schema::ValidationError => e
+            @res = {
+                body: {erro: e.message},
+                status: :bad_request
+            }
+            false
+        end
+    end
+
   private
     def encode_jwt(payload = {})
         JWT.encode payload, Rails.application.credentials.dig(:auth, :jwt_secret), 'HS256'

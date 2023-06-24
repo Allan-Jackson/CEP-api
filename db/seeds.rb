@@ -12,10 +12,11 @@ ends = [
     {cep: "35145970", uf: "MG", cidade: "Sobrália", bairro: "Centro", logradouro: "Praça São Geraldo, 43"}       
 ]
 users = [
-    {nome: 'Joseclildo Soares', email: 'josesoares@email.com', senha: '123'},
-    {nome: 'Itamar Siqueira', email: 'imatarnomar@email.com', senha: '456'}
+    {nome: 'Joseclildo Soares', email: 'josesoares@email.com', senha: 'C4rr0ç!N8A'},
+    {nome: 'Itamar Siqueira', email: 'imatarnomar@email.com', senha: 'C$B4Ç!NHo'}
 ]
 
-#usar find_or_create_by
-Usuario.create(users)
-Endereco.create(ends)
+Usuario.destroy_all
+Endereco.destroy_all
+Usuario.create!(users)
+Endereco.create!(ends)
