@@ -1,33 +1,51 @@
 require "json-schema"
+require "logger"
 
 class AuthController < ApplicationController
     skip_before_action :token_validation
 
     # POST /auth
     def create_token
-        
+        log_info "endpoint '/auth' accessed"
         errors = validate_payload (params)
 
+        
         unless errors.empty?
+            log_error "invalid user payload. errors: #{errors.inspect}"
             render json: {reasons: errors}, status: :bad_request
             return;
         end
         
+        log_info "authenticating user by email: #{params[:email].inspect}"
         # busca usuário no banco e bate a senha
         if user = Usuario.find_by(email: params[:email])&.authenticate_senha(params[:senha])
-            render json: {token: encode_jwt({user_id: user.id, exp: (Time.now + 3600).to_i})}, status: :ok
+            render json: {token: token=encode_jwt({user_id: user.id, exp: (Time.now + 3600).to_i})}, status: :ok
+            log_debug "generated access token: #{token.inspect}"
+            log_info "the user was authenticated and token was succesfully created."
         else 
+            log_error "user could not be authenticated, wrong credentials"
             render json: {erro: 'E-mail e/ou senha do usuário incorreto(s).'}, status: :bad_request
         end
         
-    rescue
+    rescue StandardError => e
+        log_fatal [e.message, *e.backtrace].join($/)
         render json: {erro: 'Houve algum erro com o serviço. Por favor, tente novamente mais tarde...'}, status: 500
     end
 
-    # TODO: obter regex para validar e-mail
+    
     def validate_email(email)
-        return [1] if email.nil?
-        []
+        errors = []
+        valid_format = /^[\w._%+-]+@[\w.-]+\.+[a-zA-Z]{2,4}$/
+        
+        if email.nil?
+            errors << "O parâmetro 'email' deve ser informado."
+        elsif !email.match(valid_format)
+            errors << "Formato inválido para o campo 'email'."
+        end
+
+        puts 'OLHA:'
+        puts email.scan(valid_format)
+        errors
     end
 
     def validate_senha(password)
@@ -50,7 +68,7 @@ class AuthController < ApplicationController
         }
         
         if password.nil?
-            return  errors << "O parâmetro senha deve ser informado."
+            return  errors << "O parâmetro 'senha' deve ser informado."
         elsif password.length < min_length
             errors << "A senha deve ter pelo menos #{min_length} caracteres."
         elsif password.length > max_length
@@ -81,7 +99,7 @@ class AuthController < ApplicationController
             errors << "A senha deve conter pelo menos #{min_upper} caracteres especiais."
         end
 
-        return errors;
+        errors;
     end
 
     def validate_payload (payload)

@@ -1,16 +1,27 @@
 require_relative 'services/cep_service'
+require_relative 'errors/invalid_cep_error'
 require 'json'
 
 class EnderecosController < ApplicationController
-  before_action :set_endereco, only: %i[ show update destroy ]
-  rescue_from InvalidCepError, with: :handle_invalid_cep
+  
+  attr_reader :validation_errors
+
+  def initialize
+    @validation_errors = []
+  end
 
   # GET /enderecos/1
   def show
-    unless @validation_errors.empty?
-      render json: {reasons: @validation_errors}, status: :bad_request      
-      return;
-    end
+    log_info "endpoint '/enderecos/{cep}' accessed"
+    log_info "param CEP: #{params[:cep].inspect}"
+
+    set_endereco
+
+    # unless @validation_errors.empty?
+    #   log_error "invalid user payload. errors: #{errors.inspect}"
+    #   render json: {reasons: @validation_errors}, status: :bad_request      
+    #   return;
+    # end
     associa_usuario_endereco(@user_id, @endereco)
     
     # pega os atributos da tabela num hash
@@ -25,24 +36,33 @@ class EnderecosController < ApplicationController
       uf:
     }
     
+    log_info "response: #{resposta.to_json}"
     render json: resposta
-  rescue
-    render json: {erro: 'Houve algum erro com o serviço. Por favor, tente novamente mais tarde...'}, status: 500
+
+  rescue InvalidCepError
+    log_error "invalid CEP. errors: #{@validation_errors.inspect}"
+    handle_invalid_cep
+  rescue StandardError => e
+    log_fatal [e.message, *e.backtrace].join($/)
+    handle_error
   end
 
   private
     def set_endereco   
-      validate_cep(params[:cep])
+      check_cep_size(params[:cep])
 
       unless (endereco = Endereco.find_by(cep: params[:cep])).nil?
-        puts 'OLHA:'
-        puts endereco
+        log_debug "getting address from database: #{endereco.inspect}"
         @endereco = endereco
       else
-        @endereco = salva_endereco(MyCEPService.new.buscaEndereco(params[:cep]))
+        endereco = JSON.parse(MyCEPService.new.buscaEndereco(params[:cep]))
+        
+        
+        check_endereco_exists(endereco)
+
+        log_debug "address found from API: #{endereco.inspect}"
+        @endereco = salva_endereco(endereco)
       end
-      rescue
-        raise
     end
 
     # Only allow a list of trusted parameters through.
@@ -52,36 +72,46 @@ class EnderecosController < ApplicationController
 
     def salva_endereco(endereco)
       end_columns = [:uf, :cep, :bairro, :cidade, :logradouro]
-      endereco = JSON.parse(endereco).select { |key, _| end_columns.include?(key) }
+      endereco = endereco.symbolize_keys.select { |key, _| end_columns.include?(key) }
+      log_debug "address with selected fields to save to database: #{endereco.inspect}"
       Endereco.create(endereco)
     end
 
     def associa_usuario_endereco(id_usuario, endereco)
-      unless endereco.usuarios.include? Usuario.find(id_usuario)
-        endereco.usuarios << Usuario.find(id_usuario)
+      puts "OLHA"
+      puts endereco.inspect
+      unless endereco.usuarios.include? user = Usuario.find(id_usuario)
+        log_debug "associating user: {userId: #{user.id}, username: #{user.nome}, email: #{user.email}} to address in database"
+        endereco.usuarios << user
         endereco.save
       end
     end
 
     #validations
-    def validate_cep (cep)
-      @validation_errors = []
-      if cep.nil?
-        @validation_errors << "O parâmetro CEP não pode estar ausente."
-      elsif cep.size != 8
+    def check_cep_size (cep)
+      log_debug "validating cep size..."
+      if cep.size != 8
         @validation_errors << "O parâmetro CEP deve conter 8 dígitos."
+        raise InvalidCepError and return
       end
-      
-      raise InvalidCepError
+    end
+
+    def check_endereco_exists (endereco)
+      log_debug "validating cep is valid..."
+      if endereco.empty? 
+        @validation_errors << "CEP não encontrado."
+        raise InvalidCepError
+      end
     end
 
     def handle_invalid_cep
-      render json: {reasons: @validation_errors}, status: :bad_request
+      render json: {reasons: @validation_errors}, status: :bad_request and return
+    end
+
+    def handle_error
+      render json: {erro: 'Houve algum erro com o serviço. Por favor, tente novamente mais tarde...'}, status: 500
+      return
     end
 end
 
-class InvalidCepError < StandardError
-  def initialize(message = "CEP inválido")
-    super(message)
-  end
-end
+
