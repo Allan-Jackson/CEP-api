@@ -19,7 +19,11 @@ class AuthController < ApplicationController
         log_info "authenticating user by email: #{params[:email].inspect}"
         # busca usuário no banco e bate a senha
         if user = Usuario.find_by(email: params[:email])&.authenticate_senha(params[:senha])
-            render json: {token: token=encode_jwt({user_id: user.id, exp: (Time.now + 3600).to_i})}, status: :ok
+            log_debug "encoding JWT..."
+            token = encode_jwt({user_id: user.id, exp: (Time.now + 3600).to_i})
+
+            render json: {token: token}, status: :ok
+
             log_debug "generated access token: #{token.inspect}"
             log_info "the user was authenticated and token was succesfully created."
         else 
@@ -43,8 +47,6 @@ class AuthController < ApplicationController
             errors << "Formato inválido para o campo 'email'."
         end
 
-        puts 'OLHA:'
-        puts email.scan(valid_format)
         errors
     end
 
@@ -96,7 +98,7 @@ class AuthController < ApplicationController
         end
     
         if count[:special] < min_special
-            errors << "A senha deve conter pelo menos #{min_upper} caracteres especiais."
+            errors << "A senha deve conter pelo menos #{min_special} caracteres especiais."
         end
 
         errors;

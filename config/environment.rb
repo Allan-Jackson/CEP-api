@@ -7,15 +7,14 @@ Rails.application.initialize!
 Rails.application.configure do
     
     if config.logger.nil?
-        config.logger = ActiveSupport::Logger.new("log/teste.log")
-        # config.logger.level = Logger::ERROR
+        config.logger = ActiveSupport::Logger.new("log/#{Rails.env}_env.log")
     end
 
     case Rails.env 
     when 'development'
         config.logger.level = Logger::DEBUG
     when 'test'
-        config.logger.level = Logger::INFO
+        config.logger.level = Logger::DEBUG
     when 'production'
         config.logger.level = Logger::INFO
     end

@@ -24,6 +24,11 @@ module CepApi
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    #Rspec configuration
+    config.generators do |g|
+      g.test_framework :rspec
+    end
+
     config.autoload_paths += %W(#{config.root}/app/controllers/errors)
     config.autoload_paths += %W(#{config.root}/app/controllers/services)
     config.autoload_paths += %W(#{config.root}/app/controllers/utils)

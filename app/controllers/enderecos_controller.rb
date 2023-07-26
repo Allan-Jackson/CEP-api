@@ -5,6 +5,7 @@ require 'json'
 class EnderecosController < ApplicationController
   
   attr_reader :validation_errors
+  @resposta
 
   def initialize
     @validation_errors = []
@@ -12,6 +13,8 @@ class EnderecosController < ApplicationController
 
   # GET /enderecos/1
   def show
+    # render json: 'OK', status: 200
+    # return
     log_info "endpoint '/enderecos/{cep}' accessed"
     log_info "param CEP: #{params[:cep].inspect}"
 
@@ -28,7 +31,7 @@ class EnderecosController < ApplicationController
     attrs = @endereco.attributes
     attrs.symbolize_keys => {cep:, logradouro:, bairro:, cidade:, uf:}
     
-    resposta = {
+    @resposta = {
       cep:,
       logradouro:,
       bairro:,
@@ -36,8 +39,7 @@ class EnderecosController < ApplicationController
       uf:
     }
     
-    log_info "response: #{resposta.to_json}"
-    render json: resposta
+    render json: @resposta and return
 
   rescue InvalidCepError
     log_error "invalid CEP. errors: #{@validation_errors.inspect}"
@@ -45,6 +47,8 @@ class EnderecosController < ApplicationController
   rescue StandardError => e
     log_fatal [e.message, *e.backtrace].join($/)
     handle_error
+  ensure
+    log_info "response: status => #{response.status} #{}, payload => #{@resposta.to_json}"
   end
 
   private
@@ -78,8 +82,6 @@ class EnderecosController < ApplicationController
     end
 
     def associa_usuario_endereco(id_usuario, endereco)
-      puts "OLHA"
-      puts endereco.inspect
       unless endereco.usuarios.include? user = Usuario.find(id_usuario)
         log_debug "associating user: {userId: #{user.id}, username: #{user.nome}, email: #{user.email}} to address in database"
         endereco.usuarios << user
@@ -105,12 +107,11 @@ class EnderecosController < ApplicationController
     end
 
     def handle_invalid_cep
-      render json: {reasons: @validation_errors}, status: :bad_request and return
+      render json: @resposta = {reasons: @validation_errors}, status: :bad_request and return
     end
 
     def handle_error
-      render json: {erro: 'Houve algum erro com o serviço. Por favor, tente novamente mais tarde...'}, status: 500
-      return
+      render json: @resposta = {erro: 'Houve algum erro com o serviço. Por favor, tente novamente mais tarde...'}, status: 500 and return
     end
 end
 
